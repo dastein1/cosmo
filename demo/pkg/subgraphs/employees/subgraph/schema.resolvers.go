@@ -109,6 +109,7 @@ func (r *queryResolver) Teammates(ctx context.Context, team model.Department) ([
 
 // CurrentTime is the resolver for the currentTime field.
 func (r *subscriptionResolver) CurrentTime(ctx context.Context) (<-chan *model.Time, error) {
+	println("Connect CurrentTime")
 	ch := make(chan *model.Time)
 
 	go func() {
@@ -141,6 +142,41 @@ func (r *subscriptionResolver) CurrentTime(ctx context.Context) (<-chan *model.T
 	return ch, nil
 }
 
+// CurrentCount is the resolver for the currentCount field.
+func (r *subscriptionResolver) CurrentCount(ctx context.Context) (<-chan *model.Count, error) {
+	println("Connect CurrentCount")
+	ch := make(chan *model.Count)
+	var count int
+
+	go func() {
+		defer close(ch)
+
+		for {
+			// In our example we'll send the current time every second.
+			time.Sleep(10 * time.Second)
+
+			count++
+			c := &model.Count{
+				Count: count,
+			}
+
+			// The subscription may have got closed due to the client disconnecting.
+			// Hence, we do send in a select block with a check for context cancellation.
+			// This avoids goroutine getting blocked forever or panicking,
+			select {
+			case <-ctx.Done(): // This runs when context gets cancelled. Subscription closes.
+				// Handle deregistration of the channel here. `close(ch)`
+				return // Remember to return to end the routine.
+
+			case ch <- c: // This is the actual send.
+				// Our message went through, do nothing
+			}
+		}
+	}()
+
+	return ch, nil
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
@@ -150,6 +186,8 @@ func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 // Subscription returns generated.SubscriptionResolver implementation.
 func (r *Resolver) Subscription() generated.SubscriptionResolver { return &subscriptionResolver{r} }
 
-type mutationResolver struct{ *Resolver }
-type queryResolver struct{ *Resolver }
-type subscriptionResolver struct{ *Resolver }
+type (
+	mutationResolver     struct{ *Resolver }
+	queryResolver        struct{ *Resolver }
+	subscriptionResolver struct{ *Resolver }
+)

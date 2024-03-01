@@ -61,6 +61,10 @@ type ComplexityRoot struct {
 		Upc       func(childComplexity int) int
 	}
 
+	Count struct {
+		Count func(childComplexity int) int
+	}
+
 	Details struct {
 		Forename func(childComplexity int) int
 		Location func(childComplexity int) int
@@ -121,7 +125,8 @@ type ComplexityRoot struct {
 	}
 
 	Subscription struct {
-		CurrentTime func(childComplexity int) int
+		CurrentCount func(childComplexity int) int
+		CurrentTime  func(childComplexity int) int
 	}
 
 	Time struct {
@@ -151,6 +156,7 @@ type QueryResolver interface {
 }
 type SubscriptionResolver interface {
 	CurrentTime(ctx context.Context) (<-chan *model.Time, error)
+	CurrentCount(ctx context.Context) (<-chan *model.Count, error)
 }
 
 type executableSchema struct {
@@ -206,6 +212,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Cosmo.Upc(childComplexity), true
+
+	case "Count.count":
+		if e.complexity.Count.Count == nil {
+			break
+		}
+
+		return e.complexity.Count.Count(childComplexity), true
 
 	case "Details.forename":
 		if e.complexity.Details.Forename == nil {
@@ -471,6 +484,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.SDK.Upc(childComplexity), true
 
+	case "Subscription.currentCount":
+		if e.complexity.Subscription.CurrentCount == nil {
+			break
+		}
+
+		return e.complexity.Subscription.CurrentCount(childComplexity), true
+
 	case "Subscription.currentTime":
 		if e.complexity.Subscription.CurrentTime == nil {
 			break
@@ -631,11 +651,16 @@ type Mutation {
   updateEmployeeTag(id: Int!, tag: String!): Employee
 }
 
+type Count {
+  count: Int!
+}
+
 type Subscription {
   """
   ` + "`" + `currentTime` + "`" + ` will return a stream of ` + "`" + `Time` + "`" + ` objects.
   """
   currentTime: Time!
+  currentCount: Count!
 }
 
 enum Department {
@@ -705,7 +730,7 @@ type Employee implements Identifiable @key(fields: "id") {
   role: RoleType!
   notes: String
   updatedAt: String!
-  startDate: String! @requiresScopes(scopes: [["read:employee", "read:private"], ["read:all"]])
+  startDate: String! #@requiresScopes(scopes: [["read:employee", "read:private"], ["read:all"]])
 }
 
 type Time {
@@ -1255,6 +1280,50 @@ func (ec *executionContext) fieldContext_Cosmo_lead(ctx context.Context, field g
 				return ec.fieldContext_Employee_startDate(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Employee", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Count_count(ctx context.Context, field graphql.CollectedField, obj *model.Count) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Count_count(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Count, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Count_count(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Count",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
 		},
 	}
 	return fc, nil
@@ -3081,6 +3150,68 @@ func (ec *executionContext) fieldContext_Subscription_currentTime(ctx context.Co
 				return ec.fieldContext_Time_timeStamp(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Time", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Subscription_currentCount(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
+	fc, err := ec.fieldContext_Subscription_currentCount(ctx, field)
+	if err != nil {
+		return nil
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = nil
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Subscription().CurrentCount(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return nil
+	}
+	return func(ctx context.Context) graphql.Marshaler {
+		select {
+		case res, ok := <-resTmp.(<-chan *model.Count):
+			if !ok {
+				return nil
+			}
+			return graphql.WriterFunc(func(w io.Writer) {
+				w.Write([]byte{'{'})
+				graphql.MarshalString(field.Alias).MarshalGQL(w)
+				w.Write([]byte{':'})
+				ec.marshalNCount2ᚖgithubᚗcomᚋwundergraphᚋcosmoᚋdemoᚋpkgᚋsubgraphsᚋemployeesᚋsubgraphᚋmodelᚐCount(ctx, field.Selections, res).MarshalGQL(w)
+				w.Write([]byte{'}'})
+			})
+		case <-ctx.Done():
+			return nil
+		}
+	}
+}
+
+func (ec *executionContext) fieldContext_Subscription_currentCount(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "count":
+				return ec.fieldContext_Count_count(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Count", field.Name)
 		},
 	}
 	return fc, nil
@@ -5225,6 +5356,45 @@ func (ec *executionContext) _Cosmo(ctx context.Context, sel ast.SelectionSet, ob
 	return out
 }
 
+var countImplementors = []string{"Count"}
+
+func (ec *executionContext) _Count(ctx context.Context, sel ast.SelectionSet, obj *model.Count) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, countImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Count")
+		case "count":
+			out.Values[i] = ec._Count_count(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var detailsImplementors = []string{"Details"}
 
 func (ec *executionContext) _Details(ctx context.Context, sel ast.SelectionSet, obj *model.Details) graphql.Marshaler {
@@ -5901,6 +6071,8 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 	switch fields[0].Name {
 	case "currentTime":
 		return ec._Subscription_currentTime(ctx, fields[0])
+	case "currentCount":
+		return ec._Subscription_currentCount(ctx, fields[0])
 	default:
 		panic("unknown field " + strconv.Quote(fields[0].Name))
 	}
@@ -6353,6 +6525,20 @@ func (ec *executionContext) marshalNCosmo2ᚖgithubᚗcomᚋwundergraphᚋcosmo�
 		return graphql.Null
 	}
 	return ec._Cosmo(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNCount2githubᚗcomᚋwundergraphᚋcosmoᚋdemoᚋpkgᚋsubgraphsᚋemployeesᚋsubgraphᚋmodelᚐCount(ctx context.Context, sel ast.SelectionSet, v model.Count) graphql.Marshaler {
+	return ec._Count(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNCount2ᚖgithubᚗcomᚋwundergraphᚋcosmoᚋdemoᚋpkgᚋsubgraphsᚋemployeesᚋsubgraphᚋmodelᚐCount(ctx context.Context, sel ast.SelectionSet, v *model.Count) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Count(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNCountry2githubᚗcomᚋwundergraphᚋcosmoᚋdemoᚋpkgᚋsubgraphsᚋemployeesᚋsubgraphᚋmodelᚐCountry(ctx context.Context, v interface{}) (model.Country, error) {

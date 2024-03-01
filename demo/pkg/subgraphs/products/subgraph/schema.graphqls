@@ -5,12 +5,12 @@ schema {
 
 type Queries {
   productTypes: [Products!]!
-  topSecretFederationFacts: [TopSecretFact!]! @requiresScopes(scopes: [["read:fact"], ["read:all"]])
+  topSecretFederationFacts: [TopSecretFact!]!
   factTypes: [TopSecretFactType!]
 }
 
 type Mutation {
-  addFact(fact: TopSecretFactInput!): TopSecretFact! @requiresScopes(scopes: [["write:fact"], ["write:all"]])
+  addFact(fact: TopSecretFactInput!): TopSecretFact!
 }
 
 input TopSecretFactInput {
@@ -19,26 +19,26 @@ input TopSecretFactInput {
   factType: TopSecretFactType!
 }
 
-enum TopSecretFactType @authenticated {
-  DIRECTIVE,
-  ENTITY,
-  MISCELLANEOUS,
+enum TopSecretFactType {
+  DIRECTIVE
+  ENTITY
+  MISCELLANEOUS
 }
 
-interface TopSecretFact @authenticated {
+interface TopSecretFact {
   description: FactContent!
   factType: TopSecretFactType
 }
 
-scalar FactContent @requiresScopes(scopes: [["read:scalar"], ["read:all"]])
+scalar FactContent
 
-type DirectiveFact implements TopSecretFact @authenticated {
+type DirectiveFact implements TopSecretFact {
   title: String!
   description: FactContent!
   factType: TopSecretFactType
 }
 
-type EntityFact implements TopSecretFact @requiresScopes(scopes: [["read:entity"]]){
+type EntityFact implements TopSecretFact {
   title: String!
   description: FactContent!
   factType: TopSecretFactType
@@ -46,7 +46,7 @@ type EntityFact implements TopSecretFact @requiresScopes(scopes: [["read:entity"
 
 type MiscellaneousFact implements TopSecretFact {
   title: String!
-  description: FactContent! @requiresScopes(scopes: [["read:miscellaneous"]])
+  description: FactContent!
   factType: TopSecretFactType
 }
 

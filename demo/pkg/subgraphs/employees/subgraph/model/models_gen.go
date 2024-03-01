@@ -61,6 +61,10 @@ func (this Cosmo) GetEngineers() []*Employee {
 
 func (Cosmo) IsEntity() {}
 
+type Count struct {
+	Count int `json:"count"`
+}
+
 type Details struct {
 	Forename string  `json:"forename"`
 	Location Country `json:"location"`

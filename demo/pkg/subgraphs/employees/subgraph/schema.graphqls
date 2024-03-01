@@ -9,11 +9,16 @@ type Mutation {
   updateEmployeeTag(id: Int!, tag: String!): Employee
 }
 
+type Count {
+  count: Int!
+}
+
 type Subscription {
   """
   `currentTime` will return a stream of `Time` objects.
   """
   currentTime: Time!
+  currentCount: Count!
 }
 
 enum Department {
@@ -83,7 +88,7 @@ type Employee implements Identifiable @key(fields: "id") {
   role: RoleType!
   notes: String
   updatedAt: String!
-  startDate: String! @requiresScopes(scopes: [["read:employee", "read:private"], ["read:all"]])
+  startDate: String! #@requiresScopes(scopes: [["read:employee", "read:private"], ["read:all"]])
 }
 
 type Time {
